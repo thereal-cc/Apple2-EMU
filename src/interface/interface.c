@@ -80,6 +80,7 @@ void poll_keyboard(interface_t *interface, cpu_t *cpu)
                     case SDLK_SEMICOLON: key_hit = current_key.mod & SDL_KMOD_SHIFT ? ':' : ';'; break;
                     case SDLK_MINUS:     key_hit = current_key.mod & SDL_KMOD_SHIFT ? '_' : '-'; break;
                     case SDLK_EQUALS:    key_hit = current_key.mod & SDL_KMOD_SHIFT ? '+' : '='; break;
+                    case SDLK_APOSTROPHE:     key_hit = current_key.mod & SDL_KMOD_SHIFT ? '\"' : '\''; break;
                 }
 
                 if (key_hit) {

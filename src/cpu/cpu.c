@@ -132,7 +132,7 @@ void write_memory(cpu_t *cpu, u16 address, u8 value)
     }
 
     if (address >= 0xD000) return; // ROM is read-only
-    
+
     cpu->memory[address] = value;
 }
 
