@@ -1,4 +1,4 @@
-# Apple1-EMU
+# Apple2-EMU
 
 A simple Apple 2 Emulator written in C. This emulator has currently been tested with the Applesoft BASIC and the Apple 2 System Monitor.
 
