@@ -17,8 +17,6 @@ int main(int argc, char *argv[])
         cpu.running = false;
     }
 
-    printf("Program Counter: $%04x\n", cpu.PC);
-
     while (cpu.running)
     {
         for (int i = 0; i < CYCLES_PER_FRAME; i++)

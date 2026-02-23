@@ -22,7 +22,7 @@ typedef struct
     u8 Z; 
     u8 C;
     
-    // BRK/IRQ/NMI Locations
+    // BRK/RESET/NMI Locations
     u16 BRK_LOC;
     u16 RESET_LOC;
     u16 NMI_LOC;
