@@ -29,7 +29,6 @@ void cpu_cycle(cpu_t *cpu)
 {
     // Debug Function (Prints CPU State to file)
     // cpu_display_registers(cpu);
-
     u8 opcode_byte = read_memory(cpu, cpu->PC++);
     opcode_t opcode = opcodes[opcode_byte];
     u16 addr = 0;
@@ -93,18 +92,10 @@ u8 load_program(cpu_t *cpu, const char* rom_path, u16 address)
 bool init_software(cpu_t *cpu)
 {
     // Load Applesoft
-    u8 status = load_program(cpu, "./roms/Applesoft", 0xD000);
+    u8 status = load_program(cpu, "./roms/Apple2_Plus.Rom", 0xD000);
     if (status)
     {
         fprintf(stderr, "Error: Could not load Applesoft\n");
-        return false;
-    }
-
-    // Load System Monitor
-    status = load_program(cpu, "./roms/OrigF8ROM", 0xF800);
-    if (status)
-    {
-        fprintf(stderr, "Error: Could not load System Monitor\n");
         return false;
     }
 
@@ -121,9 +112,7 @@ u8 read_memory(cpu_t *cpu, u16 address)
 {
     // Check for key press
     if (address == 0xC000) {
-        if (cpu->key_ready) {
-            return cpu->key_value | 0x80;
-        }
+        if (cpu->key_ready) return cpu->key_value | 0x80;
 
         return 0x00;
     }
