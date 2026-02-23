@@ -35,6 +35,10 @@ bool init_interface(interface_t *interface)
         return false;
     }
 
+    interface->render_mode = TEXT;
+    interface->cursor_visible = true;
+    interface->num_cols = STD_COL;
+    interface->num_rows = TXT_ROW;
     return true;
 }
 
@@ -101,24 +105,24 @@ void render_text_screen(interface_t *interface, cpu_t *cpu)
     SDL_SetRenderDrawColor(interface->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(interface->renderer);
 
-    for (int row = 0; row < 24; row++) {
+    for (int row = 0; row < interface->num_rows; row++) {
         u16 base_addr = row_addresses[row];
 
-        for (int col = 0; col < 40; col++) {
+        for (int col = 0; col < interface->num_cols; col++) {
             u8 video_byte = cpu->memory[base_addr + col];
 
             // Determine render mode from top 2 bits
             u8 mode;
             u8 top2 = video_byte & 0xC0;
             switch (top2) {
-                case 0xC0:
-                    mode = 0; // normal
-                    break;
                 case 0x00:
-                    mode = 1; // inverse
+                    mode = 1; // Inverse
+                    break;
+                case 0x40:
+                    mode = interface->cursor_visible ? 0 : 1;; // Flashing
                     break;
                 default:
-                    mode = 2; // flashing
+                    mode = 0; // Normal
                     break;
             }
 
@@ -137,12 +141,13 @@ void render_text_screen(interface_t *interface, cpu_t *cpu)
                 for (int px = 0; px < CHAR_WIDTH; px++) {
                     bool lit = (glyph_row >> px) & 1;
 
-                    if (mode == 1) lit = !lit;  // inverse: flip pixels
+                    // inverse: flip pixels
+                    if (mode == 1) lit = !lit;
 
                     SDL_SetRenderDrawColor(
                         interface->renderer,
-                        lit ? 0   : 0,    // R  (0 = black background)
-                        lit ? 255 : 0,    // G  (green phosphor)
+                        lit ? 0   : 0,    // R  
+                        lit ? 255 : 0,    // G  
                         lit ? 0   : 0,    // B
                         255
                     );
