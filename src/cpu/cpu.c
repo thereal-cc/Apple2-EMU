@@ -22,6 +22,7 @@ void cpu_init(cpu_t *cpu)
     cpu->key_value = 0;
 
     cpu->running = true;
+    cpu->global_cycles = 0;
 }
 
 void cpu_cycle(cpu_t *cpu)
