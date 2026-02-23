@@ -17,12 +17,12 @@ typedef int16_t i16;
 // CPU Defines
 #define MEMORY_SIZE 0x10000
 
-#define IRQ_LOW 0xFFFA
-#define IRQ_HIGH 0xFFFB
-#define RESET_LOW 0xFFFC
-#define RESET_HIGH 0xFFFD
-#define BRK_LOW 0xFFFE
-#define BRK_HIGH 0xFFFF
+#define NMI_LOW_ADDR 0xFFFA
+#define NMI_HIGH_ADDR 0xFFFB
+#define RESET_LOW_ADDR 0xFFFC
+#define RESET_HIGH_ADDR 0xFFFD
+#define BRK_LOW_ADDR 0xFFFE
+#define BRK_HIGH_ADDR 0xFFFF
 
 // Status flag masks
 #define UNUSED_FLAG   0x00

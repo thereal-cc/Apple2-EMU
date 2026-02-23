@@ -3,6 +3,8 @@
 
 #include "utils/util.h"
 
+#define CYCLES_PER_FRAME 17030 // 1.023 MHz / 60 FPS
+
 typedef struct
 {
     // CPU-Related Variables
@@ -18,7 +20,12 @@ typedef struct
     u8 D; 
     u8 I; 
     u8 Z; 
-    u8 C; 
+    u8 C;
+    
+    // BRK/IRQ/NMI Locations
+    u16 BRK_LOC;
+    u16 RESET_LOC;
+    u16 NMI_LOC;
 
     // State-Related Variables
     u8 key_value;
@@ -30,6 +37,7 @@ typedef struct
 void cpu_init(cpu_t *cpu);
 void cpu_cycle(cpu_t *cpu);
 u8 load_program(cpu_t *cpu, const char* rom_path, u16 address);
+bool init_software(cpu_t *cpu_);
 u8 read_memory(cpu_t *cpu, u16 address);
 void write_memory(cpu_t *cpu, u16 address, u8 value);
 

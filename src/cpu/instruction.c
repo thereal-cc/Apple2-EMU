@@ -600,7 +600,7 @@ void BRK(cpu_t *cpu, u16 addr)
     write_memory(cpu, (0x100 | cpu->SP), value);
     cpu->SP--;
 
-    cpu->PC = (read_memory(cpu, BRK_LOW)) | (read_memory(cpu, BRK_HIGH) << 8);
+    cpu->PC = (read_memory(cpu, BRK_LOW_ADDR)) | (read_memory(cpu, BRK_HIGH_ADDR) << 8);
 }
 
 void NOP(cpu_t *cpu, u16 addr)

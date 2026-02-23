@@ -21,21 +21,7 @@ void cpu_init(cpu_t *cpu)
     cpu->key_ready = false;
     cpu->key_value = 0;
 
-    // Interrupt Handler
-    cpu->memory[IRQ_LOW] = 0x86;
-    cpu->memory[IRQ_HIGH] = 0xFA;
-
-    // Set reset vector in ROM
-    cpu->memory[RESET_LOW] = 0x59;
-    cpu->memory[RESET_HIGH] = 0xFF;
-
-    cpu->memory[BRK_LOW] = 0xFB;
-    cpu->memory[BRK_HIGH] = 0x03;
-
     cpu->running = true;
-    cpu->global_cycles = 0;
-
-    cpu->PC = (cpu->memory[RESET_HIGH] << 8) | cpu->memory[RESET_LOW];
 }
 
 void cpu_cycle(cpu_t *cpu)
@@ -64,7 +50,6 @@ void cpu_cycle(cpu_t *cpu)
 
     opcode.operation(cpu, addr);
     //usleep(1 * opcode.cycles);
-
     cpu->global_cycles += opcode.cycles;
 }
 
@@ -104,6 +89,33 @@ u8 load_program(cpu_t *cpu, const char* rom_path, u16 address)
     return status;
 }
 
+bool init_software(cpu_t *cpu)
+{
+    // Load Applesoft
+    u8 status = load_program(cpu, "./roms/Applesoft", 0xD000);
+    if (status)
+    {
+        fprintf(stderr, "Error: Could not load Applesoft\n");
+        return false;
+    }
+
+    // Load System Monitor
+    status = load_program(cpu, "./roms/OrigF8ROM", 0xF800);
+    if (status)
+    {
+        fprintf(stderr, "Error: Could not load System Monitor\n");
+        return false;
+    }
+
+    // Set NMI, Reset, & BRK Locations
+    cpu->NMI_LOC = (cpu->memory[NMI_HIGH_ADDR] << 8) | cpu->memory[NMI_LOW_ADDR];
+    cpu->RESET_LOC = (cpu->memory[RESET_HIGH_ADDR] << 8) | cpu->memory[RESET_LOW_ADDR];
+    cpu->BRK_LOC = (cpu->memory[BRK_HIGH_ADDR] << 8) | cpu->memory[BRK_LOW_ADDR];
+
+    cpu->PC = cpu->RESET_LOC;
+    return true;
+}
+
 u8 read_memory(cpu_t *cpu, u16 address)
 {
     // Check for key press
@@ -131,7 +143,8 @@ void write_memory(cpu_t *cpu, u16 address, u8 value)
         return;
     }
 
-    if (address >= 0xD000) return; // ROM is read-only
+    // Protect Writing to ROM
+    if (address >= 0xD000) return;
 
     cpu->memory[address] = value;
 }
