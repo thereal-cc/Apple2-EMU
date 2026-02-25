@@ -10,10 +10,29 @@ u16 row_addresses[24] = {
     0x0650, 0x06D0, 0x0750, 0x07D0
 };
 
+u8 lores_colors[16][3] = {
+    {0,   0,   0  },  // Black
+    {227, 30,  96 },  // Magenta
+    {96,  78,  189},  // Dark Blue
+    {255, 68,  253},  // Purple
+    {0,   163, 96 },  // Dark Green
+    {156, 156, 156},  // Gray 1
+    {20,  207, 253},  // Medium Blue
+    {208, 195, 255},  // Light Blue
+    {96,  114, 3  },  // Brown
+    {255, 106, 60 },  // Orange
+    {156, 156, 156},  // Gray 2
+    {255, 160, 163},  // Pink
+    {20,  245, 60 },  // Green
+    {208, 221, 141},  // Yellow
+    {114, 255, 208},  // Aqua
+    {255, 255, 255},  // White
+};
+
 bool init_interface(interface_t *interface)
 {
     // Initialize Video
-    if (SDL_Init(SDL_INIT_VIDEO) == false) {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL could not initialize! SDL_Error: %s", SDL_GetError());
         return false;
     }
@@ -35,10 +54,17 @@ bool init_interface(interface_t *interface)
         return false;
     }
 
+    // Set Text Mode
     interface->render_mode = TEXT;
     interface->cursor_visible = true;
-    interface->num_cols = STD_COL;
-    interface->num_rows = TXT_ROW;
+    interface->txt_cols = STD_COL;
+    interface->txt_rows = TXT_ROW;
+
+    // Set Low-Res Mode
+    interface->mixed_mode = false;
+    interface->low_height = LOW_RES_HEIGHT;
+    interface->low_width = LOW_RES_WIDTH;
+
     return true;
 }
 
@@ -73,6 +99,18 @@ void poll_keyboard(interface_t *interface, cpu_t *cpu)
                         key_hit = (current_key.key - SDLK_0) + '0';
                 }
 
+                if (current_key.mod & SDL_KMOD_CTRL) {
+                    if (current_key.key == SDLK_DELETE) { 
+                        // Point Back to Reset Vector
+                        cpu->PC = cpu->RESET_LOC;
+                        cpu->text_mode = true;
+                        cpu->low_res = false;
+                        cpu->high_res = false;
+                        cpu->mixed_mode = false;
+                        cpu->key_ready = false;
+                    }
+                }
+
                 // Handle Singular Characters
                 switch (current_key.key) {
                     case SDLK_RETURN:    key_hit = '\r'; break;
@@ -100,29 +138,29 @@ void poll_keyboard(interface_t *interface, cpu_t *cpu)
     }
 }
 
-void render_text_screen(interface_t *interface, cpu_t *cpu)
+void render_text_screen(interface_t *interface, cpu_t *cpu, int start_row)
 {
-    SDL_SetRenderDrawColor(interface->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(interface->renderer);
-
-    for (int row = 0; row < interface->num_rows; row++) {
+    for (int row = start_row; row < interface->txt_rows; row++) {
         u16 base_addr = row_addresses[row];
 
-        for (int col = 0; col < interface->num_cols; col++) {
-            u8 video_byte = cpu->memory[base_addr + col];
+        for (int col = 0; col < interface->txt_cols; col++) {
+            u8 video_byte = read_memory(cpu, base_addr + col);
 
             // Determine render mode from top 2 bits
             u8 mode;
             u8 top2 = video_byte & 0xC0;
             switch (top2) {
+                // Inverse
                 case 0x00:
-                    mode = 1; // Inverse
+                    mode = 1; 
                     break;
+                // Flashing
                 case 0x40:
-                    mode = interface->cursor_visible ? 0 : 1;; // Flashing
+                    mode = interface->cursor_visible ? 0 : 1; 
                     break;
+                // Normal
                 default:
-                    mode = 0; // Normal
+                    mode = 0; 
                     break;
             }
 
@@ -136,7 +174,7 @@ void render_text_screen(interface_t *interface, cpu_t *cpu)
             int y = row * CHAR_HEIGHT;
 
             for (int py = 0; py < CHAR_HEIGHT; py++) {
-                u8 glyph_row = apple2_font[char_index][py];
+                u8 glyph_row = apple2_font_std[char_index][py];
 
                 for (int px = 0; px < CHAR_WIDTH; px++) {
                     bool lit = (glyph_row >> px) & 1;
@@ -163,14 +201,80 @@ void render_text_screen(interface_t *interface, cpu_t *cpu)
             }
         }
     }
+}
 
-    SDL_RenderPresent(interface->renderer);
+void render_lowres_screen(interface_t *interface, cpu_t *cpu, int num_rows)
+{
+    for (int row = 0; row < num_rows; row++) {
+        u16 base_addr = row_addresses[row];
+
+        for (int col = 0; col < interface->low_width; col++) {
+            u8 byte = read_memory(cpu, base_addr + col);
+
+            u8 top_color = byte & 0x0F;
+            u8 bottom_color = (byte >> 4 ) & 0x0F;
+
+            int x = col * 14;
+            int top_y = row * 16;
+            int bottom_y = (row * 16) + 8;
+
+            // Draw Top Pixel
+            SDL_SetRenderDrawColor(
+                interface->renderer,
+                    lores_colors[top_color][0],
+                    lores_colors[top_color][1],
+                    lores_colors[top_color][2],
+                    255
+            );
+
+            SDL_FRect top_rect = {
+                x, top_y, 14, 8
+            };
+
+            SDL_RenderFillRect(interface->renderer, &top_rect);
+
+            // Draw Bottom Pixel
+            SDL_SetRenderDrawColor(
+                interface->renderer,
+                    lores_colors[bottom_color][0],
+                    lores_colors[bottom_color][1],
+                    lores_colors[bottom_color][2],
+                    255
+            );
+
+            SDL_FRect bottom_rect = {
+                x, bottom_y, 14, 8
+            };
+
+            SDL_RenderFillRect(interface->renderer, &bottom_rect);
+        }
+    }
+}
+
+void render_hires_screen(interface_t *interface, cpu_t *cpu)
+{
+
 }
 
 void run_display(interface_t *interface, cpu_t *cpu)
 { 
+    // Clear Screen
     SDL_SetRenderDrawColor(interface->renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(interface->renderer);
+    SDL_RenderClear(interface->renderer);  
+
+    if (cpu->text_mode) {
+        render_text_screen(interface, cpu, 0);
+    } else if (cpu->low_res) {
+        if (cpu->mixed_mode) {
+            render_lowres_screen(interface, cpu, TXT_ROW - 4);
+            render_text_screen(interface, cpu, TXT_ROW - 4);
+        } else {
+            render_lowres_screen(interface, cpu, TXT_ROW);
+        }
+    } else if (cpu->high_res) {
+        render_hires_screen(interface, cpu);
+    }
+
     SDL_RenderPresent(interface->renderer);
 }
 

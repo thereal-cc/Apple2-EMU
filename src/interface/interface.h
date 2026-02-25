@@ -13,8 +13,8 @@
 #define TXT_ROW 24
 
 // Low-Res Mode Defines
-#define LOW_RES_WIDTH 48
-#define LOW_RES_HEIGHT 40
+#define LOW_RES_HEIGHT 48
+#define LOW_RES_WIDTH 40
 
 // High-Res Mode Defines
 #define HIGH_RES_WIDTH 280
@@ -27,7 +27,6 @@ enum RENDER_MODE
     HIGH,
 };
 
-
 typedef struct 
 {
     SDL_Window *window;
@@ -36,18 +35,25 @@ typedef struct
     
     // Text Mode
     bool cursor_visible;
-    u8 num_rows;
-    u8 num_cols;
+    u8 txt_rows;
+    u8 txt_cols;
 
     // Low-Res
+    bool mixed_mode;
+    u8 low_width;
+    u8 low_height;
 
     // High-Res
-
+    bool color_screen;
+    u8 high_width;
+    u8 high_height;
 } interface_t;
 
 bool init_interface(interface_t *interface);
 void poll_keyboard(interface_t *interface, cpu_t *cpu);
-void render_text_screen(interface_t *interface, cpu_t *cpu);
+void render_text_screen(interface_t *interface, cpu_t *cpu, int start_rows);
+void render_lowres_screen(interface_t *interface, cpu_t *cpu, int num_rows);
+void render_hires_screen(interface_t *interface, cpu_t *cpu);
 void run_display(interface_t *interface, cpu_t *cpu);
 void end_interface(interface_t *interface);
 

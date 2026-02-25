@@ -27,16 +27,22 @@ typedef struct
     u16 RESET_LOC;
     u16 NMI_LOC;
 
+    // Rendering Related Variables
+    bool text_mode;
+    bool low_res;
+    bool mixed_mode;
+    bool high_res;
+
     // State-Related Variables
     u8 key_value;
-    bool running;
     bool key_ready;
+    bool running;
     u64 global_cycles;
 } cpu_t;
 
 void cpu_init(cpu_t *cpu);
 void cpu_cycle(cpu_t *cpu);
-u8 load_program(cpu_t *cpu, const char* rom_path, u16 address);
+bool load_program(cpu_t *cpu, const char* rom_path, u16 address);
 bool init_software(cpu_t *cpu_);
 u8 read_memory(cpu_t *cpu, u16 address);
 void write_memory(cpu_t *cpu, u16 address, u8 value);

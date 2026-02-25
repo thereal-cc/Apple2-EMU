@@ -17,12 +17,19 @@ void cpu_init(cpu_t *cpu)
     cpu->N = cpu->V = cpu->D = cpu->C = 0;
     cpu->B = cpu->I = cpu->Z = 1;
 
-    // PIA State
+    // Keyboard State
     cpu->key_ready = false;
     cpu->key_value = 0;
 
+    // Global State
     cpu->running = true;
     cpu->global_cycles = 0;
+
+    // Rendering State
+    cpu->text_mode = true;
+    cpu->low_res = false;
+    cpu->high_res = false;
+    cpu->mixed_mode = false;
 }
 
 void cpu_cycle(cpu_t *cpu)
@@ -53,25 +60,23 @@ void cpu_cycle(cpu_t *cpu)
     cpu->global_cycles += opcode.cycles;
 }
 
-u8 load_program(cpu_t *cpu, const char* rom_path, u16 address)
+bool load_program(cpu_t *cpu, const char* rom_path, u16 address)
 {
-    u8 status = 1;
-
     // Load File
     FILE *fptr = fopen(rom_path, "rb");
-    if (fptr == NULL) return status;
+    if (fptr == NULL) return false;
 
     if (fseek(fptr, 0, SEEK_END) != 0) { 
         fprintf(stderr, "Error seeking to end of file\n");
         fclose(fptr);
-        return status;
+        return false;
     }
 
     long size = ftell(fptr);
     if (size == -1) {
         fprintf(stderr, "Error getting file position\n");
         fclose(fptr);
-        return status;
+        return false;
     }
     fseek(fptr, 0, SEEK_SET);
 
@@ -82,20 +87,18 @@ u8 load_program(cpu_t *cpu, const char* rom_path, u16 address)
     // Nothing Loaded
     if (!bytes_read) {
         fprintf(stderr, "Nothing was loaded\n");
-        return status;
+        return false;
     }
 
-    status = 0;
-    return status;
+    return true;
 }
 
 bool init_software(cpu_t *cpu)
 {
-    // Load Applesoft
-    u8 status = load_program(cpu, "./roms/Apple2_Plus.Rom", 0xD000);
-    if (status)
+    // Load Apple2_Plus rom
+    if (!load_program(cpu, "./roms/Apple2_Plus.Rom", 0xD000))
     {
-        fprintf(stderr, "Error: Could not load Applesoft\n");
+        fprintf(stderr, "Error: Could not load ROM\n");
         return false;
     }
 
@@ -110,16 +113,53 @@ bool init_software(cpu_t *cpu)
 
 u8 read_memory(cpu_t *cpu, u16 address)
 {
-    // Check for key press
-    if (address == 0xC000) {
-        if (cpu->key_ready) return cpu->key_value | 0x80;
+    // Read IO Space
+    if (address >= 0xC000 && address <= 0xCFFF) {
+        switch (address) {
+            // Return Key Value
+            case 0xC000:
+                if (cpu->key_ready) {
+                    return cpu->key_value | NEGATIVE_FLAG;
+                }
+                return 0;
+            // Clear Key Press
+            case 0xC010:
+                cpu->key_ready = false;
+                return 0;
+            // Clear Text Mode
+            case 0xC050:
+                cpu->text_mode = false; 
+                return 0;
+            // Set Text Mode
+            case 0xC051:
+                cpu->text_mode = true; 
+                return 0;
+            // Set Full Screen
+            case 0xC052:
+                cpu->mixed_mode = false; 
+                return 0; 
+            // Set Mixed Mode
+            case 0xC053:
+                cpu->mixed_mode = true;  
+                return 0;
+            // Set Page 1
+            case 0xC054:
+                return 0;
+            // Set Page 2
+            case 0xC055:
+                return 0;
+            // Set Low-Res
+            case 0xC056:
+                cpu->low_res = true;  
+                cpu->high_res = false; 
+                return 0; 
+            // Set High-Res
+            case 0xC057:
+                cpu->low_res = false; 
+                cpu->high_res = true;  
+                return 0;
+        }
 
-        return 0x00;
-    }
-
-    // Clear key press
-    if (address == 0xC010) {
-        cpu->key_ready = false;
         return 0;
     }
 
@@ -128,8 +168,47 @@ u8 read_memory(cpu_t *cpu, u16 address)
 
 void write_memory(cpu_t *cpu, u16 address, u8 value)
 {
-    if (address == 0xC010) {
-        cpu->key_ready = false;
+    // Read IO Space
+    if (address >= 0xC000 && address <= 0xCFFF) {
+        switch (address) {
+            // Clear Key Press
+            case 0xC010:
+                cpu->key_ready = false;
+                return;
+            // Clear Text Mode
+            case 0xC050:
+                cpu->text_mode = false; 
+                return;
+            // Set Text Mode
+            case 0xC051:
+                cpu->text_mode = true; 
+                return;
+            // Set Full Screen
+            case 0xC052:
+                cpu->mixed_mode = false; 
+                return; 
+            // Set Mixed Mode
+            case 0xC053:
+                cpu->mixed_mode = true;  
+                return;
+            // Set Page 1
+            case 0xC054:
+                return;
+            // Set Page 2
+            case 0xC055:
+                return;
+            // Set Low-Res
+            case 0xC056:
+                cpu->low_res = true;  
+                cpu->high_res = false; 
+                return; 
+            // Set High-Res
+            case 0xC057:
+                cpu->low_res = false; 
+                cpu->high_res = true;  
+                return;
+        }
+
         return;
     }
 
@@ -154,16 +233,4 @@ void cpu_display_registers(cpu_t *cpu) {
     if (!log) log = fopen("trace.log", "w");
     fprintf(log, "A: %02X, X: %02X, Y: %02X, PC: %04X, SP: %02X, SR: %02X\n",
                cpu->A, cpu->X, cpu->Y, cpu->PC, cpu->SP, value);
-}
-
-void print_memory(cpu_t *cpu, u16 start, u16 end) {
-    printf("Memory dump from $%04X to $%04X:\n", start, end);
-    for (u16 addr = start; addr <= end; addr++) {
-        // Print 16 bytes per line
-        if ((addr - start) % 16 == 0) {
-            printf("\n%04X: ", addr); // Print address label at the start of each line
-        }
-        printf("%02X ", read_memory(cpu, addr));
-    }
-    printf("\n\n");
 }

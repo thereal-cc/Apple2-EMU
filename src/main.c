@@ -12,13 +12,14 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
 
     // Load Software
-    if (!init_software(&cpu)) {
+    if (!init_software(&cpu))
+    {
         fprintf(stderr, "There was an error loading the Apple II Rom\n");
         cpu.running = false;
     }
 
     u32 last_flash = SDL_GetTicks();
-    
+
     while (cpu.running)
     {
         u64 frame_start = SDL_GetPerformanceCounter();
@@ -27,17 +28,18 @@ int main(int argc, char *argv[])
         {
             cpu_cycle(&cpu);
         }
-        
+
         poll_keyboard(&interface, &cpu);
 
-        // Determine if Cursor should be flashing
+        // Determine if Cursor should be flashing (300 ms)
         u32 now = SDL_GetTicks();
-        if (now - last_flash >= 300) {
+        if (now - last_flash >= 300)
+        {
             interface.cursor_visible = !interface.cursor_visible;
             last_flash = now;
         }
 
-        render_text_screen(&interface, &cpu);
+        run_display(&interface, &cpu);
         SDL_Delay(16);
     }
 
