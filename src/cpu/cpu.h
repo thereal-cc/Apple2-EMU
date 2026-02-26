@@ -2,6 +2,7 @@
 #define CPU_H
 
 #include "utils/util.h"
+#include "disk/disk.h"
 
 #define CYCLES_PER_FRAME 17030 // 1.023 MHz / 60 FPS
 
@@ -32,6 +33,10 @@ typedef struct
     bool low_res;
     bool mixed_mode;
     bool high_res;
+
+    // Disks (Emulate 2 Drives)
+    disk_t drive1;
+    disk_t drive2;
 
     // State-Related Variables
     u8 key_value;

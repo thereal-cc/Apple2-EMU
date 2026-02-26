@@ -24,6 +24,6 @@ The rom image for the Apple 2+ is already included in this repository under the 
 
 There are several things I need to add before I consider this "complete". I plan on incorporating the following features:   
 - Disk II Emulation
-- High_Res Graphics Mode
+- High Res (Color) Graphics Mode
 - Sound Emulation
 - 80-Column Card Support

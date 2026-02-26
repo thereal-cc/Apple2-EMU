@@ -17,8 +17,9 @@
 #define LOW_RES_WIDTH 40
 
 // High-Res Mode Defines
-#define HIGH_RES_WIDTH 280
-#define HIGH_RES_HEIGHT 192
+#define HGR_WIDTH_MONO 280
+#define HGR_WIDTH_COLOR 140
+#define HGR_HEIGHT 192
 
 enum RENDER_MODE
 {
@@ -53,7 +54,7 @@ bool init_interface(interface_t *interface);
 void poll_keyboard(interface_t *interface, cpu_t *cpu);
 void render_text_screen(interface_t *interface, cpu_t *cpu, int start_rows);
 void render_lowres_screen(interface_t *interface, cpu_t *cpu, int num_rows);
-void render_hires_screen(interface_t *interface, cpu_t *cpu);
+void render_hires_screen(interface_t *interface, cpu_t *cpu, int num_rows);
 void run_display(interface_t *interface, cpu_t *cpu);
 void end_interface(interface_t *interface);
 

@@ -8,6 +8,7 @@ int main(int argc, char *argv[])
     interface_t interface;
 
     cpu_init(&cpu);
+
     if (!init_interface(&interface))
         return EXIT_FAILURE;
 
@@ -17,6 +18,12 @@ int main(int argc, char *argv[])
         fprintf(stderr, "There was an error loading the Apple II Rom\n");
         cpu.running = false;
     }
+
+    /*
+    // Check if there's a disk loaded
+    cpu.drive1 = load_disk();
+    if (!cpu.drive1.loaded) cpu.running = false;
+    */
 
     u32 last_flash = SDL_GetTicks();
 

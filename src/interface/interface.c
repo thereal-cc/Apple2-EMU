@@ -29,6 +29,15 @@ u8 lores_colors[16][3] = {
     {255, 255, 255},  // White
 };
 
+u8 hires_colors[6][3] = {
+    {0,   0,   0  },  // black
+    {255, 255, 255},  // white
+    {20,  245, 60 },  // green  (palette 0, odd pixel)
+    {148, 12,  125},  // violet (palette 0, even pixel)
+    {255, 106, 60 },  // orange (palette 1, odd pixel)
+    {20,  207, 253},  // blue   (palette 1, even pixel)
+};
+
 bool init_interface(interface_t *interface)
 {
     // Initialize Video
@@ -64,6 +73,10 @@ bool init_interface(interface_t *interface)
     interface->mixed_mode = false;
     interface->low_height = LOW_RES_HEIGHT;
     interface->low_width = LOW_RES_WIDTH;
+
+    // Set High-Res Mode
+    interface->high_width = HGR_WIDTH_MONO;
+    interface->high_height = HGR_HEIGHT;
 
     return true;
 }
@@ -251,9 +264,39 @@ void render_lowres_screen(interface_t *interface, cpu_t *cpu, int num_rows)
     }
 }
 
-void render_hires_screen(interface_t *interface, cpu_t *cpu)
+void render_hires_screen(interface_t *interface, cpu_t *cpu, int num_rows)
 {
+    // Going to treat this as a mono screen for now
+    for (int py = 0; py < num_rows; py++) {
+        int group = py / 64;
+        int block = (py % 64) / 8;
+        int line  = py % 8;
 
+        u16 base_addr = 0x2000
+                      + (group * 0x28)
+                      + (block * 0x80)
+                      + (line  * 0x400);
+
+        int screen_x = 0;
+
+        for (int px = 0; px < 40; px++) {
+            u8 byte = read_memory(cpu, base_addr + px);
+
+            for (int bit = 0; bit < 7; bit++) {
+                bool pixel = (byte >> bit) & 1;
+
+                SDL_SetRenderDrawColor(interface->renderer,
+                0,
+                pixel ? 255 : 0,
+                0,
+                255);
+
+                SDL_FRect rect = {screen_x * 2, py * 2, 2, 2};
+                SDL_RenderFillRect(interface->renderer, &rect);
+                screen_x++;
+            }
+        }
+    }
 }
 
 void run_display(interface_t *interface, cpu_t *cpu)
@@ -272,7 +315,12 @@ void run_display(interface_t *interface, cpu_t *cpu)
             render_lowres_screen(interface, cpu, TXT_ROW);
         }
     } else if (cpu->high_res) {
-        render_hires_screen(interface, cpu);
+        if (cpu->mixed_mode) {
+            render_hires_screen(interface, cpu, interface->high_height - 32);
+            render_text_screen(interface, cpu, TXT_ROW - 4);
+        } else {
+            render_hires_screen(interface, cpu, interface->high_height);
+        }
     }
 
     SDL_RenderPresent(interface->renderer);

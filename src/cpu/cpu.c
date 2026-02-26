@@ -102,6 +102,15 @@ bool init_software(cpu_t *cpu)
         return false;
     }
 
+    // Load Disk2 Rom, put it in slot 6
+    /*
+    if (!load_program(cpu, "./roms/DISK2.rom", 0xC600))
+    {
+        fprintf(stderr, "Error, Could not load Disk Interface\n");
+        return false;
+    }
+    */
+
     // Set NMI, Reset, & BRK Locations
     cpu->NMI_LOC = (cpu->memory[NMI_HIGH_ADDR] << 8) | cpu->memory[NMI_LOW_ADDR];
     cpu->RESET_LOC = (cpu->memory[RESET_HIGH_ADDR] << 8) | cpu->memory[RESET_LOW_ADDR];
@@ -114,7 +123,7 @@ bool init_software(cpu_t *cpu)
 u8 read_memory(cpu_t *cpu, u16 address)
 {
     // Read IO Space
-    if (address >= 0xC000 && address <= 0xCFFF) {
+    if (address >= 0xC000 && address <= 0xC0FF) {
         switch (address) {
             // Return Key Value
             case 0xC000:
@@ -158,10 +167,15 @@ u8 read_memory(cpu_t *cpu, u16 address)
                 cpu->low_res = false; 
                 cpu->high_res = true;  
                 return 0;
+            
+            // Disk II IO
+            case 0xC0EC:
+                return read_disk_register(&cpu->drive1);
         }
 
         return 0;
     }
+    
 
     return cpu->memory[address];
 }
@@ -169,7 +183,7 @@ u8 read_memory(cpu_t *cpu, u16 address)
 void write_memory(cpu_t *cpu, u16 address, u8 value)
 {
     // Read IO Space
-    if (address >= 0xC000 && address <= 0xCFFF) {
+    if (address >= 0xC000 && address <= 0xC0FF) {
         switch (address) {
             // Clear Key Press
             case 0xC010:
